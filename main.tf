@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 #
 # Service
 #
@@ -16,9 +18,48 @@ data "aws_iam_policy_document" "service" {
   }
 }
 
+
+data "aws_iam_policy_document" "service-role-boundary" {
+
+  # Deny if not this beanstalk env
+  statement {
+    effect = "Deny"
+    actions = [
+      "elasticbeanstalk:*"
+    ]
+
+    not_resources = ["arn:aws:elasticbeanstalk:${var.region}:${data.aws_caller_identity.current.account_id}:environment/${var.elastic_beanstalk_application_name}/${module.this.id}"]
+  }
+
+  # Deny app actions if not specific app
+  statement {
+    effect = "Deny"
+    actions = [
+      "elasticbeanstalk:UpdateApplicationVersion",
+      "elasticbeanstalk:CreateApplicationVersion",
+      "elasticbeanstalk:DeleteApplicationVersion"
+    ]
+    resources = ["*"]
+
+    condition {
+      test = "StringNotEquals"
+      values = ["arn:aws:elasticbeanstalk:${var.region}:${data.aws_caller_identity.current.account_id}:application/${var.elastic_beanstalk_application_name}]"]
+      variable = "elasticbeanstalk:InApplication"
+    }
+  }
+}
+
+resource "aws_iam_policy" "service-permission-boundary" {
+  name   = "${module.this.id}-eb-service-permission-boundary"
+  policy = data.aws_iam_policy_document.service-role-boundary.json
+}
+
+
+
 resource "aws_iam_role" "service" {
   name               = "${module.this.id}-eb-service"
   assume_role_policy = data.aws_iam_policy_document.service.json
+  permissions_boundary = aws_iam_policy.service-permission-boundary.arn
   tags               = module.this.tags
 }
 
@@ -1041,3 +1082,7 @@ module "dns_hostname" {
 
   context = module.this.context
 }
+
+
+
+
