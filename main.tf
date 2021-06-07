@@ -199,7 +199,7 @@ data "aws_iam_policy_document" "ec2-role-boundary" {
 }
 
 resource "aws_iam_policy" "ec2-permission-boundary" {
-  name   = "${module.this.id}-eb-service-permission-boundary"
+  name   = "${module.this.id}-eb-ec2-permission-boundary"
   policy = data.aws_iam_policy_document.service-role-boundary.json
 }
 
