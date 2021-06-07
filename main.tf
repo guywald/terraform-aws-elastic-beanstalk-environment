@@ -21,30 +21,57 @@ data "aws_iam_policy_document" "service" {
 
 data "aws_iam_policy_document" "service-role-boundary" {
 
-  # Deny if not this beanstalk env
   statement {
     effect = "Deny"
     actions = [
-      "elasticbeanstalk:*"
+      "iam:UntagRole"
     ]
 
-    not_resources = ["arn:aws:elasticbeanstalk:${var.region}:${data.aws_caller_identity.current.account_id}:environment/${var.elastic_beanstalk_application_name}/${module.this.id}"]
+    resources = ["*"]
+
+    condition {
+      test = "StringEquals"
+      values = ["Environment", "Name", "Terraform", "elasticbeanstalk:environment-id", "elasticbeanstalk:environment-name"]
+      variable = "aws:RequestTag"
+    }
   }
 
-  # Deny app actions if not specific app
   statement {
     effect = "Deny"
     actions = [
-      "elasticbeanstalk:UpdateApplicationVersion",
-      "elasticbeanstalk:CreateApplicationVersion",
-      "elasticbeanstalk:DeleteApplicationVersion"
+      "iam:PassRole"
     ]
+
     resources = ["*"]
 
     condition {
       test = "StringNotEquals"
-      values = ["arn:aws:elasticbeanstalk:${var.region}:${data.aws_caller_identity.current.account_id}:application/${var.elastic_beanstalk_application_name}]"]
-      variable = "elasticbeanstalk:InApplication"
+      values = ["$${aws:PrincipalTag/Environment}"]
+      variable = "iam:ResourceTag/Environment"
+    }
+
+    condition {
+      test = "StringNotEquals"
+      values = ["$${aws:PrincipalTag/Name}"]
+      variable = "iam:ResourceTag/Name"
+    }
+
+    condition {
+      test = "StringNotEquals"
+      values = ["$${aws:PrincipalTag/Terraform}"]
+      variable = "iam:ResourceTag/Terraform"
+    }
+
+    condition {
+      test = "StringNotEquals"
+      values = ["$${aws:PrincipalTag/elasticbeanstalk:environment-id}"]
+      variable = "iam:ResourceTag/elasticbeanstalk:environment-id"
+    }
+
+    condition {
+      test = "StringNotEquals"
+      values = ["$${aws:PrincipalTag/elasticbeanstalk:environment-name}"]
+      variable = "iam:ResourceTag/elasticbeanstalk:environment-name"
     }
   }
 }
@@ -79,7 +106,6 @@ resource "aws_iam_role_policy_attachment" "service" {
 #
 data "aws_iam_policy_document" "ec2" {
   statement {
-    sid = ""
 
     actions = [
       "sts:AssumeRole",
@@ -113,6 +139,71 @@ resource "aws_iam_role_policy_attachment" "elastic_beanstalk_multi_container_doc
   role       = aws_iam_role.ec2.name
   policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker"
 }
+
+
+data "aws_iam_policy_document" "ec2-role-boundary" {
+
+  statement {
+    effect = "Deny"
+    actions = [
+      "ec2:DeleteTags"
+    ]
+
+    resources = ["*"]
+
+    condition {
+      test = "StringEquals"
+      values = ["Environment", "Name", "Terraform", "elasticbeanstalk:environment-id", "elasticbeanstalk:environment-name"]
+      variable = "aws:RequestTag"
+    }
+  }
+
+  statement {
+    effect = "Deny"
+    actions = [
+      "ec2:TerminateInstances",
+      "ec2:RunInstances"
+    ]
+    resources = ["*"]
+
+    condition {
+      test = "StringNotEquals"
+      values = ["$${aws:PrincipalTag/Environment}"]
+      variable = "iam:ResourceTag/Environment"
+    }
+
+    condition {
+      test = "StringNotEquals"
+      values = ["$${aws:PrincipalTag/Name}"]
+      variable = "iam:ResourceTag/Name"
+    }
+
+    condition {
+      test = "StringNotEquals"
+      values = ["$${aws:PrincipalTag/Terraform}"]
+      variable = "iam:ResourceTag/Terraform"
+    }
+
+    condition {
+      test = "StringNotEquals"
+      values = ["$${aws:PrincipalTag/elasticbeanstalk:environment-id}"]
+      variable = "iam:ResourceTag/elasticbeanstalk:environment-id"
+    }
+
+    condition {
+      test = "StringNotEquals"
+      values = ["$${aws:PrincipalTag/elasticbeanstalk:environment-name}"]
+      variable = "iam:ResourceTag/elasticbeanstalk:environment-name"
+    }
+  }
+}
+
+resource "aws_iam_policy" "ec2-permission-boundary" {
+  name   = "${module.this.id}-eb-service-permission-boundary"
+  policy = data.aws_iam_policy_document.service-role-boundary.json
+}
+
+
 
 resource "aws_iam_role" "ec2" {
   name               = "${module.this.id}-eb-ec2"
