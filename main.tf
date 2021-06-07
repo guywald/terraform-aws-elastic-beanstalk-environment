@@ -209,6 +209,7 @@ resource "aws_iam_role" "ec2" {
   name               = "${module.this.id}-eb-ec2"
   assume_role_policy = data.aws_iam_policy_document.ec2.json
   tags               = module.this.tags
+  permissions_boundary = aws_iam_policy.ec2-permission-boundary.arn
 }
 
 resource "aws_iam_role_policy" "default" {
