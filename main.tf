@@ -146,6 +146,19 @@ data "aws_iam_policy_document" "default" {
   }
 }
 
+
+data "aws_iam_policy_document" "custom-extensions" {
+  count = var.extended_ec2_policy_document != "{}" ? 1 : 0
+  source_json   = var.extended_ec2_policy_document
+}
+
+resource "aws_iam_role_policy" "default" {
+  count = var.extended_ec2_policy_document != "{}" ? 1 : 0
+  name   = "custom-extensions"
+  role   = aws_iam_role.ec2.id
+  policy = data.aws_iam_policy_document.custom-extensions.json
+}
+
 //data "aws_iam_policy_document" "default" {
 //  statement {
 //    actions = [
