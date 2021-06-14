@@ -87,7 +87,7 @@ resource "aws_iam_role" "ec2" {
 
 resource "aws_iam_role_policy" "default" {
   name   = "custom-metrics"
-  role   = aws_iam_role.ec2.id
+  role   = aws_iam_role.ec2.arn
   policy = data.aws_iam_policy_document.default.json
 }
 
@@ -155,7 +155,7 @@ data "aws_iam_policy_document" "custom-extensions" {
 resource "aws_iam_role_policy" "default" {
   count = var.extended_ec2_policy_document != "{}" ? 1 : 0
   name   = "custom-extensions"
-  role   = aws_iam_role.ec2.id
+  role   = aws_iam_role.ec2.arn
   policy = data.aws_iam_policy_document.custom-extensions.json
 }
 
