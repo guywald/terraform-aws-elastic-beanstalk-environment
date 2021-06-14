@@ -332,7 +332,7 @@ resource "aws_iam_role_policy" "extended" {
 
 resource "aws_iam_instance_profile" "ec2" {
   name = "${module.this.id}-eb-ec2"
-  role = aws_iam_role.ec2.name
+  role = aws_iam_role.ec2.arn
 }
 
 resource "aws_security_group" "default" {
@@ -419,21 +419,6 @@ locals {
       namespace = "aws:elb:listener:443"
       name      = "ListenerEnabled"
       value     = var.loadbalancer_certificate_arn == "" ? "false" : "true"
-    },
-    {
-      namespace = "aws:elb:listener:${var.ssh_listener_port}"
-      name      = "ListenerProtocol"
-      value     = "TCP"
-    },
-    {
-      namespace = "aws:elb:listener:${var.ssh_listener_port}"
-      name      = "InstancePort"
-      value     = "22"
-    },
-    {
-      namespace = "aws:elb:listener:${var.ssh_listener_port}"
-      name      = "ListenerEnabled"
-      value     = var.ssh_listener_enabled
     },
     {
       namespace = "aws:elb:policies"
@@ -613,7 +598,7 @@ resource "aws_elastic_beanstalk_environment" "default" {
   setting {
     namespace = "aws:elasticbeanstalk:environment"
     name      = "ServiceRole"
-    value     = aws_iam_role.service.name
+    value     = aws_iam_role.service.arn
     resource  = ""
   }
 
