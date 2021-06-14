@@ -146,14 +146,20 @@ data "aws_iam_policy_document" "default" {
   }
 }
 
+resource "null_resource" "custom-extensions" {
+  count = var.extended_ec2_policy_document != "{}" ? 1 : 0
+  triggers = {
+    customPolicy = var.extended_ec2_policy_document
+  }
+}
 
 data "aws_iam_policy_document" "custom-extensions" {
-  count = var.extended_ec2_policy_document != "{}" ? 1 : 0
+  depends_on = [null_resource.custom-extensions]
   source_json   = var.extended_ec2_policy_document
 }
 
 resource "aws_iam_role_policy" "extended" {
-  count = var.extended_ec2_policy_document != "{}" ? 1 : 0
+  depends_on = [data.aws_iam_policy_document.custom-extensions]
   name   = "custom-extensions"
   role   = aws_iam_role.ec2.arn
   policy = data.aws_iam_policy_document.custom-extensions.json
