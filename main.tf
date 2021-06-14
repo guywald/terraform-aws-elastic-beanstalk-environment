@@ -162,7 +162,7 @@ resource "aws_iam_role_policy" "extended" {
   depends_on = [data.aws_iam_policy_document.custom-extensions]
   count = var.extended_ec2_policy_document == "{}" ? 0 : 1
   name   = "custom-extensions"
-  role   = aws_iam_role.ec2.arn
+  role   = aws_iam_role.ec2.id
   policy = data.aws_iam_policy_document.custom-extensions.json
 }
 
