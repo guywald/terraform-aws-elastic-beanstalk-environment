@@ -133,6 +133,7 @@ resource "null_resource" "custom-extensions" {
 
 data "aws_iam_policy_document" "custom-extensions" {
   depends_on = [null_resource.custom-extensions]
+  count = var.extended_ec2_policy_document == "{}" ? 0 : 1
   source_json   = var.extended_ec2_policy_document
 }
 
@@ -141,7 +142,7 @@ resource "aws_iam_role_policy" "extended" {
   count = var.extended_ec2_policy_document == "{}" ? 0 : 1
   name   = "custom-extensions"
   role   = aws_iam_role.ec2.id
-  policy = data.aws_iam_policy_document.custom-extensions.json
+  policy = data.aws_iam_policy_document.custom-extensions[0].json
 }
 
 resource "aws_iam_instance_profile" "ec2" {
